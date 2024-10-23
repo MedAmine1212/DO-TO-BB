@@ -1,0 +1,352 @@
+generator client {
+  provider      = "prisma-client-js"
+  binaryTargets = ["native"]
+}
+
+datasource db {
+  provider = "postgres"
+  url      = env("DATABASE_URL")
+}
+
+model School {
+  id             String         @id @default(uuid())
+  name           String
+  abbreviation   String         @default("")
+  deleted        Boolean        @default(false)
+  verified       Boolean        @default(true)
+  hybrid         Boolean        @default(false)
+  userId         String
+  image          String?        @unique
+  postedAt       DateTime       @default(now())
+  updatedAt      DateTime       @default(now()) @updatedAt
+  viewsCount     Int            @default(0)
+  viewedBy       String[]       @default([])
+  courses        Course[]
+  user           User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseNumbers  CourseNumber[] @relation("CourseNumberToSchool")
+  coursePrefixes CoursePrefix[] @relation("CoursePrefixToSchool")
+  users          User[]         @relation("FavoriteSchools")
+}
+
+model Course {
+  id               String     @id @default(uuid())
+  name             String
+  code             String     @unique
+  schoolId         String
+  previousSchoolId String?
+  deleted          Boolean    @default(false)
+  verified         Boolean    @default(true)
+  image            String?    @unique
+  deletedAt        DateTime?
+  postedAt         DateTime   @default(now())
+  updatedAt        DateTime?  @updatedAt
+  likesCount       Int        @default(0)
+  dislikesCount    Int        @default(0)
+  viewsCount       Int        @default(0)
+  userId           String
+  viewedBy         String[]   @default([])
+  school           School     @relation(fields: [schoolId], references: [id], onDelete: Cascade)
+  user             User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents        Document[]
+  moderators       User[]     @relation("CoursesOnModerators")
+  dislikedBy       User[]     @relation("DislikedCourses")
+  users            User[]     @relation("FavoriteCourses")
+  likedBy          User[]     @relation("LikedCourses")
+
+  @@unique([name, schoolId])
+}
+
+model Document {
+  id                  String         @id @default(uuid())
+  name                String
+  season              Season?        @default(NONE)
+  year                Int
+  userId              String
+  courseId            String
+  isSolutionsIncluded Boolean
+  isCompleted         Boolean
+  postedAt            DateTime       @default(now())
+  type                DocumentType?  @default(OTHERS)
+  deleted             Boolean?       @default(false)
+  verified            Boolean?       @default(false)
+  deletedAt           DateTime?
+  updatedAt           DateTime       @default(now()) @updatedAt
+  likesCount          Int            @default(0)
+  dislikesCount       Int            @default(0)
+  commentsCount       Int            @default(0)
+  viewsCount          Int            @default(0)
+  viewedBy            String[]       @default([])
+  thumbnail           String         @default("")
+  comments            Comment[]
+  course              Course         @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  uploadedBy          User           @relation(fields: [userId], references: [id])
+  files               FileDocument[]
+  dislikedBy          User[]         @relation("DislikedDocuments")
+  tags                Tag[]          @relation("DocumentTags")
+  users               User[]         @relation("FavoriteDocuments")
+  likedBy             User[]         @relation("LikedDocuments")
+}
+
+model Tag {
+  id        String     @id @default(uuid())
+  label     String     @unique
+  postedAt  DateTime?  @default(now())
+  updatedAt DateTime   @default(now()) @updatedAt
+  documents Document[] @relation("DocumentTags")
+}
+
+model Account {
+  id                String   @id @default(cuid())
+  userId            String   @map("user_id")
+  type              String?
+  provider          String
+  providerAccountId String   @map("provider_account_id")
+  token_type        String?
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  scope             String?
+  id_token          String?
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @default(now()) @updatedAt
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  userId       String?  @map("user_id")
+  sessionToken String   @unique @map("session_token")
+  expires      DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @default(now()) @updatedAt
+  user         User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationRequest {
+  id         String   @id @default(cuid())
+  identifier String   @unique
+  token      String   @unique
+  expires    DateTime
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @default(now()) @updatedAt
+}
+
+model User {
+  id                                    String                 @id @default(uuid())
+  name                                  String?
+  firstName                             String?
+  lastName                              String?
+  username                              String?                @unique
+  email                                 String?                @unique
+  password                              String?
+  resetToken                            String?
+  image                                 String?
+  encodedPictureUrl                     String?
+  resetTokenExpires                     DateTime?
+  emailVerified                         DateTime?              @map("email_verified")
+  createdAt                             DateTime               @default(now())
+  updatedAt                             DateTime               @default(now()) @updatedAt
+  deletedAt                             DateTime?
+  role                                  Role?                  @default(USER)
+  status                                UserStatus             @default(ACTIVE_USER)
+  isSubscribedToEmails                  Boolean                @default(true)
+  unsubscribeToken                      String?
+  unsubscribeTokenExpires               DateTime?
+  settingsUpdated                       Boolean?               @default(false)
+  referredById                          String?
+  points                                Int                    @default(0)
+  comments                              Comment[]
+  Course                                Course[]
+  uploadedDocuments                     Document[]
+  notifications                         Notification[]
+  posts                                 Post[]
+  Referral_Referral_referredByIdTousers Referral[]             @relation("Referral_referredByIdTousers")
+  Referral_Referral_referredIdTousers   Referral?              @relation("Referral_referredIdTousers")
+  schools                               School[]
+  accounts                              Account[]
+  sessions                              Session[]
+  courseModeratorAccess                 Course[]               @relation("CoursesOnModerators")
+  dislikedComments                      Comment[]              @relation("DislikedComments")
+  dislikedCourses                       Course[]               @relation("DislikedCourses")
+  disLikedDocuments                     Document[]             @relation("DislikedDocuments")
+  disLikedPosts                         Post[]                 @relation("DislikedPosts")
+  favoriteCourses                       Course[]               @relation("FavoriteCourses")
+  favoriteDocuments                     Document[]             @relation("FavoriteDocuments")
+  favoriteSchools                       School[]               @relation("FavoriteSchools")
+  likedComments                         Comment[]              @relation("LikedComments")
+  likedCourses                          Course[]               @relation("LikedCourses")
+  likedDocuments                        Document[]             @relation("LikedDocuments")
+  likedPosts                            Post[]                 @relation("LikedPosts")
+  notificationSettings                  NotificationSettings[] @relation("NotificationSettings")
+
+  @@map("users")
+}
+
+model Comment {
+  id              String    @id @default(uuid())
+  body            String
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime? @default(now()) @updatedAt
+  userId          String
+  documentId      String
+  isSolution      Boolean   @default(false)
+  postId          String?
+  parentCommentId String?
+  document        Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  parentComment   Comment?  @relation("ChildComments", fields: [parentCommentId], references: [id])
+  comments        Comment[] @relation("ChildComments")
+  post            Post?     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user            User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dislikedBy      User[]    @relation("DislikedComments")
+  likedBy         User[]    @relation("LikedComments")
+}
+
+model Post {
+  id         String    @id @default(uuid())
+  title      String
+  body       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  deletedAt  DateTime?
+  userId     String
+  views      Int       @default(0)
+  domain     Domain    @default(OTHERS)
+  comments   Comment[]
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  dislikedBy User[]    @relation("DislikedPosts")
+  likedBy    User[]    @relation("LikedPosts")
+}
+
+model Notification {
+  id        String   @id @default(uuid())
+  body      String
+  seen      Boolean  @default(false)
+  link      String?
+  createdAt DateTime @default(now())
+  userId    String
+  updatedAt DateTime @default(now()) @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationSettings {
+  id        String           @id @default(uuid())
+  type      NotificationType @unique
+  label     String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @default(now()) @updatedAt
+  users     User[]           @relation("NotificationSettings")
+}
+
+model FileDocument {
+  id         String    @id @default(uuid())
+  url        String    @unique
+  fileHash   String    @default("")
+  documentId String
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @default(now()) @updatedAt
+  deletedAt  DateTime?
+  Document   Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+}
+
+model Report {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now())
+  ip        String
+}
+
+model CoursePrefix {
+  id            String         @id @default(uuid())
+  prefix        String         @unique
+  courseNumbers CourseNumber[] @relation("CourseNumberToCoursePrefix")
+  schools       School[]       @relation("CoursePrefixToSchool")
+}
+
+model CourseNumber {
+  id             String         @id @default(uuid())
+  number         String         @unique
+  coursePrefixes CoursePrefix[] @relation("CourseNumberToCoursePrefix")
+  schools        School[]       @relation("CourseNumberToSchool")
+}
+
+model Referral {
+  id                                 String   @id
+  referredById                       String
+  referredId                         String?  @unique
+  createdAt                          DateTime @default(now())
+  updatedAt                          DateTime @default(now())
+  ipAddress                          String?
+  users_Referral_referredByIdTousers User     @relation("Referral_referredByIdTousers", fields: [referredById], references: [id])
+  users_Referral_referredIdTousers   User?    @relation("Referral_referredIdTousers", fields: [referredId], references: [id])
+}
+
+enum NotificationType {
+  FAVORITE_SCHOOL
+  COMMENT_ON_DOCUMENT
+  DOCUMENT_CREATION_ON_COURSE_MODERATOR
+}
+
+enum DocumentType {
+  FINAL_EXAM
+  MIDTERM_EXAM
+  QUIZZES
+  LABS
+  EXERCISES
+  OTHERS
+  NOTES
+}
+
+enum Season {
+  FALL
+  WINTER
+  SUMMER
+  NONE
+  SPRING
+}
+
+enum UserStatus {
+  ACTIVE_USER
+  DELETE_REQUESTED_BY_USER
+  BAD_USER_BANNED
+}
+
+enum Domain {
+  COMPUTER_SCIENCE
+  SOFTWARE_ENGINEERING
+  COMPUTER_ENGINEERING
+  ELECTRICAL_ENGINEERING
+  MECHANICAL_ENGINEERING
+  CIVIL_ENGINEERING
+  CHEMICAL_ENGINEERING
+  INDUSTRIAL_ENGINEERING
+  ARCHITECTURE
+  MATHEMATICS
+  PHYSICS
+  CHEMISTRY
+  BIOLOGY
+  PSYCHOLOGY
+  SOCIOLOGY
+  ECONOMICS
+  BUSINESS
+  ACCOUNTING
+  FINANCE
+  MARKETING
+  MANAGEMENT
+  LAW
+  MEDICINE
+  PHARMACY
+  DENTISTRY
+  NURSING
+  OTHERS
+}
+
+enum Role {
+  USER
+  MODERATOR
+  ADMIN
+  SUPER_ADMIN
+}

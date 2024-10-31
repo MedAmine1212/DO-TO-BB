@@ -17,12 +17,12 @@
     "@faker-js/faker": "^9.0.1",
     "@prisma/client": "^5.19.1",
     "@types/bcrypt": "^5.0.2",
-    "prisma": "^5.11.0",
     "@types/node": "^22.5.4",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "fs-extra": "^11.2.0",
     "pdf-poppler": "^0.2.1",
+    "prisma": "^5.11.0",
     "puppeteer": "^23.3.0",
     "sharp": "^0.33.5",
     "typesense": "^1.8.2"

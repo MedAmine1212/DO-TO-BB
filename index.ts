@@ -30,7 +30,7 @@ if (!fs.existsSync(TEMP_DIR)) {
 // Initialize the S3 client for images
 const s3Images = new S3Client({
   endpoint: process.env.BB_SPACE_ENDPOINT,
-  region: process.env.BB_IMAGE_REGION,
+  region: process.env.BB_SPACE_REGION,
   credentials: {
     accessKeyId: process.env.BB_IMAGE_KEY,
     secretAccessKey: process.env.BB_IMAGE_SECRET,
@@ -41,7 +41,7 @@ const s3Images = new S3Client({
 // Initialize the S3 client for documents
 const s3Documents = new S3Client({
   endpoint: process.env.BB_SPACE_ENDPOINT,
-  region: process.env.BB_DOCUMENT_REGION,
+  region: process.env.BB_SPACE_REGION,
   credentials: {
     accessKeyId: process.env.BB_DOCUMENT_KEY,
     secretAccessKey: process.env.BB_DOCUMENT_SECRET,
@@ -189,7 +189,8 @@ async function downloadFileFromDO(url: string, fileName: string): Promise<string
 
       return tempFilePath;
     } else {
-        throw new Error(`Invalid URL: ${url}`);
+      console.log(`Invalid URL: ${url}`);
+        return null;
     }
   } catch (error) {
     console.error('Error downloading file from DigitalOcean:', error);

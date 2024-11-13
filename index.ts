@@ -1,11 +1,10 @@
 import {promisify} from "util";
-const { S3Client, PutObjectCommand, GetObjectCommand } = require("@aws-sdk/client-s3");
+import {PutObjectCommand, S3Client,} from '@aws-sdk/client-s3'
 import prisma from './lib/prisma'
 import fs, {readFileSync, statSync} from "fs";
 import path, {sep} from "path";
 import {convertPDFToImages} from "./lib/PDFToImage.ts";
-import {pipeline} from "stream";
-import fetch from "node-fetch";
+import {pipeline, Readable} from "stream";
 
 interface FileTypes {
   [key: string]: string;
@@ -32,8 +31,8 @@ const s3Images = new S3Client({
   endpoint: process.env.BB_SPACE_ENDPOINT,
   region: process.env.BB_SPACE_REGION,
   credentials: {
-    accessKeyId: process.env.BB_IMAGE_KEY,
-    secretAccessKey: process.env.BB_IMAGE_SECRET,
+    accessKeyId: process.env.BB_IMAGE_KEY || "",
+    secretAccessKey: process.env.BB_IMAGE_SECRET || "",
   },
   forcePathStyle: true,
 });
@@ -43,8 +42,8 @@ const s3Documents = new S3Client({
   endpoint: process.env.BB_SPACE_ENDPOINT,
   region: process.env.BB_SPACE_REGION,
   credentials: {
-    accessKeyId: process.env.BB_DOCUMENT_KEY,
-    secretAccessKey: process.env.BB_DOCUMENT_SECRET,
+    accessKeyId: process.env.BB_DOCUMENT_KEY || "",
+    secretAccessKey: process.env.BB_DOCUMENT_SECRET || "",
   },
   forcePathStyle: true,
 });
@@ -155,6 +154,9 @@ async function loadAllDocumentsFromDB(skip: number, take: number) {
 }
 const isValidUrl = (url: string) => {
     try {
+      if(!url.startsWith('http://') && !url.startsWith('https://')) {
+        return false;
+      }
         new URL(url);
         return true;
     } catch (error) {
@@ -170,27 +172,27 @@ async function downloadFileFromDO(url: string, fileName: string): Promise<string
     }
 
     const tempFilePath = path.join(TEMP_DIR, fileName);
-
     if (fs.existsSync(tempFilePath)) {
       return tempFilePath;
     }
-
-    if(isValidUrl(url)) {
+    if (isValidUrl(url)) {
       const response = await fetch(url);
-
       if (!response.ok) {
         throw new Error(`Failed to download file from ${url}. Status: ${response.statusText}`);
       }
-
+      if (!response.body) {
+        throw new Error("Response body is null");
+      }
       const writeStream = fs.createWriteStream(tempFilePath);
       const streamPipeline = promisify(pipeline);
+      const nodeStream = Readable.fromWeb(response.body);
 
-      await streamPipeline(response.body, writeStream);
+      await streamPipeline(nodeStream, writeStream);
 
       return tempFilePath;
     } else {
       console.log(`Invalid URL: ${url}`);
-        return null;
+      return null;
     }
   } catch (error) {
     console.error('Error downloading file from DigitalOcean:', error);

@@ -1,23 +1,21 @@
 {
   "scripts": {
-    "start": "npx prisma generate && bun run index.ts"
+    "start": "npx prisma generate && pnpm exec tsx index.ts"
   },
   "name": "seeder",
-  "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest",
-    "@types/pdf-parse": "^1.1.4"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
+    "@types/pdf-parse": "^1.1.4",
+    "@types/bcrypt": "^5.0.2",
+    "@types/node": "^22.5.4",
+    "typescript": "^5.0.0",
+    "tsx": "^4.19.2",
+    "ts-node": "^10.9.1"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.651.1",
     "@faker-js/faker": "^9.0.1",
     "@prisma/client": "^5.19.1",
-    "@types/bcrypt": "^5.0.2",
-    "@types/node": "^22.5.4",
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "fs-extra": "^11.2.0",
